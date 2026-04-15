@@ -54,6 +54,7 @@ function send(msg) {
 
 function askStatus() {
   send({ type: 'GET_STATUS' });
+  send({ type: 'GET_USER' });
 }
 
 // ── Message router ────────────────────────────────────────────────────────────
@@ -95,6 +96,9 @@ function handleMessage(msg) {
       break;
     case 'CLEAR_DONE':
       if (msg.status) updateSearchStats(msg.status);
+      break;
+    case 'USER':
+      renderPlanBadge(msg.user);
       break;
     case 'PING':
       /* keep-alive – ignore */
@@ -319,7 +323,27 @@ function prettifyUrl(url) {
   }
 }
 
-// ── Wire up events ────────────────────────────────────────────────────────────
+// ── Plan badge ───────────────────────────────────────────────────────────────
+function renderPlanBadge(user) {
+  const badge = $('plan-badge');
+  if (!user) { badge.classList.add('hidden'); return; }
+
+  const plan = user.subscription_plan || 'free';
+  const isPaid = plan !== 'free';
+
+  // Check expiry for paid plans
+  const expired = isPaid && user.valid_until && new Date(user.valid_until) < new Date();
+  const label   = expired ? 'Expired' : plan.charAt(0).toUpperCase() + plan.slice(1);
+
+  badge.textContent = label;
+  badge.className   = 'plan-badge' + (isPaid && !expired ? ' plan-badge--paid' : '');
+  if (expired) badge.classList.add('plan-badge--expired');
+  badge.title = isPaid && user.valid_until
+    ? `Valid until ${new Date(user.valid_until).toLocaleDateString()}`
+    : '';
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   // Connect to background
   connectPort();

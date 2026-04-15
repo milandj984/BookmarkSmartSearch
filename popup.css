@@ -66,12 +66,35 @@ html, body {
   flex-shrink: 0;
 }
 .header-left { display: flex; align-items: center; gap: 8px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
 .logo        { width: 20px; height: 20px; flex-shrink: 0; }
 .header-title {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: .3px;
   color: var(--text);
+}
+.plan-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  background: var(--bg3);
+  cursor: default;
+}
+.plan-badge--paid {
+  color: #fff;
+  background: linear-gradient(90deg, var(--accent), var(--accent-lt));
+  border-color: transparent;
+}
+.plan-badge--expired {
+  color: var(--err);
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+  border-color: var(--err);
 }
 .icon-btn {
   background: none;

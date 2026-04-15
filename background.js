@@ -10,6 +10,7 @@
 
 // ── Static imports (only allowed form in MV3 service workers) ────────────────
 import { initEmbedder, generateEmbedding, SEMANTIC_MODE } from './lib/embedder.js';
+import { getUser, clearUser } from './lib/user-service.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const DB_NAME         = 'bookmark_ai_db';
@@ -421,6 +422,18 @@ chrome.runtime.onConnect.addListener((port) => {
       case 'GET_STATUS': {
         const { scanStatus } = await chrome.storage.local.get('scanStatus');
         port.postMessage({ type: 'STATUS', ...(scanStatus || { status: 'idle' }) });
+        break;
+      }
+
+      case 'GET_USER': {
+        const user = await getUser();
+        port.postMessage({ type: 'USER', user });
+        break;
+      }
+
+      case 'SIGN_OUT': {
+        const user = await clearUser();
+        port.postMessage({ type: 'USER', user });
         break;
       }
 
