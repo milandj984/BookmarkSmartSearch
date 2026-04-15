@@ -10,7 +10,7 @@
 
 // ── Static imports (only allowed form in MV3 service workers) ────────────────
 import { initEmbedder, generateEmbedding, SEMANTIC_MODE } from './lib/embedder.js';
-import { getUser, clearUser } from './lib/user-service.js';
+import { getUser, clearUser, PLAN, FREE_PLAN_LIMIT } from './lib/user-service.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const DB_NAME         = 'bookmark_ai_db';
@@ -310,11 +310,26 @@ async function runInitialScan() {
   }
 
   // Phase 2: process bookmarks
-  let successful = 0;
-  const failed   = [];
+  const user      = await getUser();
+  const isFree    = user.subscription_plan === PLAN.FREE;
+  const indexCap  = isFree ? FREE_PLAN_LIMIT : Infinity;
+  let successful  = 0;
+  const failed    = [];
 
   for (let i = 0; i < all.length; i++) {
     const bm = all[i];
+
+    // Enforce free-plan indexing cap
+    if (successful >= indexCap) {
+      saveStatus({
+        status: 'complete', progress: 100,
+        total, successful, failed,
+        limitReached: true, indexCap,
+        semanticMode: SEMANTIC_MODE,
+      });
+      return;
+    }
+
     try {
       const res = await processBookmark(bm);
       if (res.ok && !res.duplicate) successful++;

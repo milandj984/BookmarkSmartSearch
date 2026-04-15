@@ -231,6 +231,15 @@ html, body {
   flex-shrink: 0;
 }
 .search-stats strong { color: var(--text); }
+.stats-limit-notice {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-radius: 99px;
+  padding: 1px 8px;
+  margin-left: auto;
+}
 
 .stats-failed-btn {
   background: none;

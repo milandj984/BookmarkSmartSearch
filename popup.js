@@ -155,6 +155,14 @@ function updateSearchStats(s) {
   $('search-stat-success').textContent = s.successful || 0;
   $('search-stats').classList.remove('hidden');
 
+  const limitNotice = $('stats-limit-notice');
+  if (s.limitReached) {
+    limitNotice.textContent = `⚠️ Free plan: ${s.indexCap} bookmark limit reached`;
+    limitNotice.classList.remove('hidden');
+  } else {
+    limitNotice.classList.add('hidden');
+  }
+
   const failedList = s.failed || [];
   const failedBtn  = $('btn-show-failed');
   $('search-stat-failed').textContent = failedList.length;
