@@ -1,5 +1,5 @@
 /**
- * popup.js  –  Bookmark Smart Search
+ * popup.js  –  Smart Bookmark
  *
  * Flow
  * ────

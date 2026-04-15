@@ -1,5 +1,5 @@
 /**
- * background.js  –  Bookmark Smart Search  –  MV3 Service Worker
+ * background.js  –  Smart Bookmark  –  MV3 Service Worker
  *
  * NOTE: MV3 service workers ONLY support static top-level imports.
  *       dynamic import() is forbidden by spec – do not use it here.
