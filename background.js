@@ -552,13 +552,28 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.bookmarks.onCreated.addListener(async (_id, bookmark) => {
   if (!bookmark.url) return;
   try {
+    const { scanStatus } = await chrome.storage.local.get('scanStatus');
+
+    // Enforce free-plan cap before doing any work
+    if (scanStatus?.status === 'complete') {
+      const user     = await getUser();
+      const isFree   = user.subscription_plan === PLAN.FREE;
+      const indexCap = isFree ? FREE_PLAN_LIMIT : Infinity;
+      if ((scanStatus.successful || 0) >= indexCap) {
+        const updated = { ...scanStatus, limitReached: true, indexCap };
+        chrome.storage.local.set({ scanStatus: updated });
+        broadcast({ type: 'SCAN_PROGRESS', ...updated });
+        return;
+      }
+    }
+
     await initEmbedder();
     await getDB();
     const res = await processBookmark(bookmark);
     if (res.ok && !res.duplicate) {
-      const { scanStatus } = await chrome.storage.local.get('scanStatus');
-      if (scanStatus?.status === 'complete') {
-        const updated = { ...scanStatus, successful: (scanStatus.successful || 0) + 1 };
+      const { scanStatus: fresh } = await chrome.storage.local.get('scanStatus');
+      if (fresh?.status === 'complete') {
+        const updated = { ...fresh, successful: (fresh.successful || 0) + 1 };
         chrome.storage.local.set({ scanStatus: updated });
         broadcast({ type: 'SCAN_PROGRESS', ...updated });
       }
@@ -619,7 +634,11 @@ chrome.bookmarks.onRemoved.addListener(async (id, removeInfo) => {
     if (removed > 0) {
       const { scanStatus } = await chrome.storage.local.get('scanStatus');
       if (scanStatus?.status === 'complete') {
-        const updated = { ...scanStatus, successful: Math.max(0, (scanStatus.successful || 0) - removed) };
+        const newCount  = Math.max(0, (scanStatus.successful || 0) - removed);
+        const indexCap  = scanStatus.indexCap || FREE_PLAN_LIMIT;
+        // Re-enable indexing if deletions brought the count back under the cap
+        const limitReached = scanStatus.limitReached && newCount >= indexCap;
+        const updated = { ...scanStatus, successful: newCount, limitReached, indexCap };
         chrome.storage.local.set({ scanStatus: updated });
         broadcast({ type: 'SCAN_PROGRESS', ...updated });
       }
