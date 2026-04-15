@@ -186,8 +186,17 @@ function updateSearchStats(s) {
       const reason = document.createElement('span');
       reason.className   = 'failed-reason';
       reason.textContent = f.reason ? `HTTP ${f.reason}` : 'network error';
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'btn-delete-failed';
+      delBtn.title       = 'Delete bookmark';
+      delBtn.textContent = '🗑';
+      delBtn.addEventListener('click', () => {
+        delBtn.disabled = true;
+        send({ type: 'DELETE_BOOKMARK', id: f.id });
+      });
       li.appendChild(a);
       li.appendChild(reason);
+      li.appendChild(delBtn);
       ul.appendChild(li);
     });
   } else {

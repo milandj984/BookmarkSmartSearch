@@ -530,6 +530,23 @@ chrome.runtime.onConnect.addListener((port) => {
         break;
       }
 
+      case 'DELETE_BOOKMARK': {
+        const { id: bmId } = msg;
+        // Remove from Chrome bookmarks (triggers onRemoved which cleans up IndexedDB)
+        try { await chrome.bookmarks.remove(bmId); } catch { /* already deleted */ }
+        // Also remove from the failed list in scanStatus
+        const { scanStatus } = await chrome.storage.local.get('scanStatus');
+        if (scanStatus) {
+          const updated = {
+            ...scanStatus,
+            failed: (scanStatus.failed || []).filter(f => f.id !== bmId),
+          };
+          chrome.storage.local.set({ scanStatus: updated });
+          port.postMessage({ type: 'SCAN_PROGRESS', ...updated });
+        }
+        break;
+      }
+
       case 'RESCAN': {
         // Close open connection before wiping IndexedDB
         if (db) { db.close(); db = null; }
