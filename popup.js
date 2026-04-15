@@ -185,7 +185,7 @@ function updateSearchStats(s) {
       });
       const reason = document.createElement('span');
       reason.className   = 'failed-reason';
-      reason.textContent = f.reason ? `HTTP ${f.reason}` : 'network error';
+      reason.textContent = formatFailedReason(f.reason);
       const delBtn = document.createElement('button');
       delBtn.className   = 'btn-delete-failed';
       delBtn.title       = 'Delete bookmark';
@@ -327,6 +327,23 @@ function renderResults(results, _query) {
   });
 
   list.classList.remove('hidden');
+}
+
+function formatFailedReason(reason) {
+  if (!reason) return 'Unable to reach';
+  const s = String(reason);
+  if (s.match(/^\d+$/)) {
+    const code = Number(s);
+    if (code === 404) return 'Not found (404)';
+    if (code === 403) return 'Access denied (403)';
+    if (code === 401) return 'Login required (401)';
+    if (code === 429) return 'Too many requests (429)';
+    if (code >= 500)  return `Server error (${code})`;
+    return `HTTP ${code}`;
+  }
+  if (s === 'network') return 'Unable to reach';
+  // Any raw JS error message or unknown string → generic label
+  return 'Unable to reach';
 }
 
 function prettifyUrl(url) {

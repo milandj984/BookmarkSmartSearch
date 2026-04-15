@@ -16,7 +16,7 @@ import { getUser, clearUser, PLAN, FREE_PLAN_LIMIT } from './lib/user-service.js
 const DB_NAME         = 'bookmark_ai_db';
 const DB_VERSION      = 1;
 const STORE           = 'bookmarks';
-const FETCH_TIMEOUT   = 10_000;   // ms
+const FETCH_TIMEOUT   = 5_000;   // ms
 const MAX_HTML_BYTES  = 60_000;   // bytes read per page
 const SKIP_SCHEMES    = /^(javascript:|chrome:|chrome-extension:|about:|data:|blob:)/i;
 // Hosts that reliably block cross-origin fetches from extensions (CORS / auth walls)
