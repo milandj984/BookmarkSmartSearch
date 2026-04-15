@@ -23,6 +23,7 @@ yarn-error.log
 .c9/
 *.launch
 .settings/
+/for_web_store
 
 # OS specific files
 Thumbs.db
