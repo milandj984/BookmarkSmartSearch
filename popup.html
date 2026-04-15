@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bookmark Smart Search</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <div class="header">
+      <div class="header-left">
+        <img src="icons/icon32.png" alt="" class="logo" />
+        <span class="header-title">Bookmark Smart Search</span>
+      </div>
+      <button id="btn-rescan" class="icon-btn" title="Re-scan all bookmarks">↺</button>
+    </div>
+
+    <!-- ── Loading (initial state while checking SW) ─── -->
+    <div id="view-loading" class="view">
+      <div class="spinner"></div>
+      <p class="muted">Connecting…</p>
+    </div>
+
+    <!-- ── Idle: first install, scan not triggered ────── -->
+    <div id="view-idle" class="view hidden">
+      <div class="idle-box">
+        <div class="idle-icon">🔖</div>
+        <p>Your bookmarks haven't been indexed yet.</p>
+        <button id="btn-start-scan" class="btn-primary">Index Bookmarks Now</button>
+      </div>
+    </div>
+
+    <!-- ── Scanning progress ──────────────────────────── -->
+    <div id="view-scan" class="view hidden">
+      <div class="scan-wrap">
+        <div class="scan-phase" id="scan-phase-label">Initialising…</div>
+
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+
+        <div class="progress-info">
+          <span id="progress-count">0 / 0</span>
+          <span id="progress-pct">0%</span>
+        </div>
+
+        <div id="scan-live-status" class="scan-live"></div>
+      </div>
+    </div>
+
+    <!-- ── Search ─────────────────────────────────────── -->
+    <div id="view-search" class="view hidden">
+      <div id="search-stats" class="search-stats hidden">
+        <span>✅ <strong id="search-stat-success">0</strong> indexed</span>
+        <button id="btn-show-failed" class="stats-failed-btn hidden">
+          ⚠️ <strong id="search-stat-failed">0</strong> failed ▾
+        </button>
+      </div>
+
+      <!-- Failed bookmarks panel -->
+      <div id="failed-panel" class="failed-panel hidden">
+        <div class="failed-panel-header">
+          <span>Failed to fetch</span>
+          <div class="failed-panel-actions">
+            <button id="btn-retry-failed" class="btn-retry-failed">↻ Retry all</button>
+            <button id="btn-clear-failed" class="btn-clear-failed">✕ Clear</button>
+          </div>
+        </div>
+        <div id="retry-progress-wrap" class="retry-progress-wrap hidden">
+          <div class="retry-progress-track">
+            <div class="retry-progress-fill" id="retry-progress-fill" style="width:0%"></div>
+          </div>
+          <span id="retry-progress-label" class="retry-progress-label">0 / 0</span>
+        </div>
+        <ul id="failed-panel-list" class="failed-panel-list"></ul>
+      </div>
+      <div class="search-row">
+        <span class="search-icon-prefix">🔍</span>
+        <input
+          id="search-input"
+          type="text"
+          placeholder="e.g. "that movie streaming site""
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="btn-clear-search" class="clear-btn hidden" title="Clear">✕</button>
+      </div>
+
+      <div id="results-area">
+        <div id="results-hint" class="hint">
+          Type a query — semantic + keyword search across all bookmarks
+        </div>
+        <div id="results-searching" class="hint hidden">Searching…</div>
+        <div id="results-empty"    class="hint hidden">No results found</div>
+        <ul   id="results-list"    class="results-list hidden"></ul>
+      </div>
+    </div>
+
+    <!-- ── Error ──────────────────────────────────────── -->
+    <div id="view-error" class="view hidden">
+      <div class="error-box">
+        <p>❌ <span id="error-msg"></span></p>
+        <button id="btn-retry" class="btn-primary">Retry</button>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+
+  <script src="popup.js"></script>
+</body>
+</html>
