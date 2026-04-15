@@ -140,9 +140,11 @@ function updateScanView(s) {
   $('progress-pct').textContent    = (s.progress || 0) + '%';
 
   const failed = s.failed?.length || 0;
-  $('scan-live-status').textContent = failed
+  const counts = failed
     ? `✅ ${s.successful || 0} indexed  ·  ⚠️ ${failed} failed`
     : `✅ ${s.successful || 0} indexed so far`;
+  const urlLine = s.currentUrl ? `\n${s.currentUrl}` : '';
+  $('scan-live-status').textContent = counts + urlLine;
 }
 
 function updateSearchStats(s) {

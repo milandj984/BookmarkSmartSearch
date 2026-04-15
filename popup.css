@@ -160,9 +160,11 @@ html, body {
 }
 .scan-live {
   font-size: 11px; color: var(--text3);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: pre;  /* respect the \n between counts and URL */
+  overflow: hidden; text-overflow: ellipsis;
   min-height: 16px;
 }
+.scan-live::after { content: ''; display: block; } /* ensures URL line is clipped cleanly */
 
 /* ── Complete summary ──────────────────────────────────────────── */
 .summary-box  { display: flex; flex-direction: column; gap: 8px; }

@@ -328,6 +328,7 @@ async function runInitialScan() {
       status: 'scanning', phase: 'scanning',
       progress, current: i + 1, total,
       successful, failed,
+      currentUrl: bm.url,
       semanticMode: SEMANTIC_MODE,
     });
 
