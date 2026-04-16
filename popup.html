@@ -58,10 +58,13 @@
     <div id="view-search" class="view hidden">
       <div id="search-stats" class="search-stats hidden">
         <span>✅ <strong id="search-stat-success">0</strong> indexed</span>
-        <span id="stats-limit-notice" class="stats-limit-notice hidden">⚠️ Free plan limit reached</span>
         <button id="btn-show-failed" class="stats-failed-btn hidden">
           ⚠️ <strong id="search-stat-failed">0</strong> failed ▾
         </button>
+        <button id="btn-show-skipped" class="stats-skipped-btn hidden">
+          ⏭️ <strong id="search-stat-skipped">0</strong> skipped ▾
+        </button>
+        <span id="stats-limit-notice" class="stats-limit-notice hidden">⚠️ Free plan limit reached</span>
       </div>
 
       <!-- Failed bookmarks panel -->
@@ -70,6 +73,7 @@
           <span>Failed to fetch</span>
           <div class="failed-panel-actions">
             <button id="btn-retry-failed" class="btn-retry-failed">↻ Retry all</button>
+            <button id="btn-delete-all-failed" class="btn-delete-all-failed">🗑 Delete all</button>
             <button id="btn-clear-failed" class="btn-clear-failed">✕ Clear</button>
           </div>
         </div>
@@ -80,6 +84,17 @@
           <span id="retry-progress-label" class="retry-progress-label">0 / 0</span>
         </div>
         <ul id="failed-panel-list" class="failed-panel-list"></ul>
+      </div>
+
+      <!-- Skipped bookmarks panel -->
+      <div id="skipped-panel" class="failed-panel hidden">
+        <div class="failed-panel-header">
+          <span>Skipped bookmarks</span>
+          <div class="failed-panel-actions">
+            <button id="btn-clear-skipped" class="btn-clear-failed">✕ Clear</button>
+          </div>
+        </div>
+        <ul id="skipped-panel-list" class="failed-panel-list"></ul>
       </div>
       <div class="search-row">
         <span class="search-icon-prefix">🔍</span>

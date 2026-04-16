@@ -77,6 +77,7 @@ function handleMessage(msg) {
       $('btn-retry-failed').textContent = '↻ Retrying…';
       $('btn-retry-failed').disabled = true;
       $('btn-clear-failed').disabled = true;
+      $('btn-delete-all-failed').disabled = true;
       $('retry-progress-fill').style.width = '0%';
       $('retry-progress-label').textContent = `0 / ${msg.total}`;
       $('retry-progress-wrap').classList.remove('hidden');
@@ -92,9 +93,16 @@ function handleMessage(msg) {
       $('btn-retry-failed').textContent = '↻ Retry all';
       $('btn-retry-failed').disabled = false;
       $('btn-clear-failed').disabled = false;
+      $('btn-delete-all-failed').disabled = false;
       if (msg.status) updateSearchStats(msg.status);
       break;
     case 'CLEAR_DONE':
+      if (msg.status) updateSearchStats(msg.status);
+      break;
+    case 'RETRY_ONE_DONE':
+      if (msg.status) updateSearchStats(msg.status);
+      break;
+    case 'CLEAR_SKIPPED_DONE':
       if (msg.status) updateSearchStats(msg.status);
       break;
     case 'USER':
@@ -143,10 +151,12 @@ function updateScanView(s) {
   $('progress-count').textContent  = `${s.current || 0} / ${s.total || 0}`;
   $('progress-pct').textContent    = (s.progress || 0) + '%';
 
-  const failed = s.failed?.length || 0;
-  const counts = failed
-    ? `✅ ${s.successful || 0} indexed  ·  ⚠️ ${failed} failed`
-    : `✅ ${s.successful || 0} indexed so far`;
+  const failed  = s.failed?.length || 0;
+  const skipped = s.skipped?.length || 0;
+  let counts = `✅ ${s.successful || 0} indexed`;
+  if (failed)  counts += `  ·  ⚠️ ${failed} failed`;
+  if (skipped) counts += `  ·  ⏭️ ${skipped} skipped`;
+  if (!failed && !skipped) counts += ' so far';
   const urlLine = s.currentUrl ? `\n${s.currentUrl}` : '';
   $('scan-live-status').textContent = counts + urlLine;
 }
@@ -163,13 +173,16 @@ function updateSearchStats(s) {
     limitNotice.classList.add('hidden');
   }
 
-  const failedList = s.failed || [];
-  const failedBtn  = $('btn-show-failed');
-  $('search-stat-failed').textContent = failedList.length;
+  const failedList   = s.failed   || [];
+  const skippedList  = s.skipped  || [];
+  const failedBtn    = $('btn-show-failed');
+  const skippedBtn   = $('btn-show-skipped');
+  $('search-stat-failed').textContent  = failedList.length;
+  $('search-stat-skipped').textContent = skippedList.length;
 
+  // ── failed panel ──
   if (failedList.length) {
     failedBtn.classList.remove('hidden');
-    // Rebuild failed panel list
     const ul = $('failed-panel-list');
     ul.innerHTML = '';
     failedList.forEach(f => {
@@ -194,8 +207,18 @@ function updateSearchStats(s) {
         delBtn.disabled = true;
         send({ type: 'DELETE_BOOKMARK', id: f.id });
       });
+      const retryBtn = document.createElement('button');
+      retryBtn.className   = 'btn-retry-one';
+      retryBtn.title       = 'Retry this bookmark';
+      retryBtn.textContent = '↻';
+      retryBtn.addEventListener('click', () => {
+        retryBtn.disabled = true;
+        delBtn.disabled   = true;
+        send({ type: 'RETRY_ONE_FAILED', id: f.id });
+      });
       li.appendChild(a);
       li.appendChild(reason);
+      li.appendChild(retryBtn);
       li.appendChild(delBtn);
       ul.appendChild(li);
     });
@@ -203,6 +226,41 @@ function updateSearchStats(s) {
     failedBtn.classList.add('hidden');
     $('failed-panel').classList.add('hidden');
   }
+
+  // ── skipped panel ──
+  if (skippedList.length) {
+    skippedBtn.classList.remove('hidden');
+    const ul = $('skipped-panel-list');
+    ul.innerHTML = '';
+    skippedList.forEach(f => {
+      const li  = document.createElement('li');
+      const a   = document.createElement('a');
+      a.href        = f.url || '#';
+      a.target      = '_blank';
+      a.rel         = 'noopener noreferrer';
+      a.textContent = f.title || f.url || '(unknown)';
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (f.url) chrome.tabs.create({ url: f.url });
+      });
+      const reason = document.createElement('span');
+      reason.className   = 'skipped-reason';
+      reason.textContent = formatSkippedReason(f.reason);
+      li.appendChild(a);
+      li.appendChild(reason);
+      ul.appendChild(li);
+    });
+  } else {
+    skippedBtn.classList.add('hidden');
+    $('skipped-panel').classList.add('hidden');
+  }
+}
+
+function formatSkippedReason(reason) {
+  if (reason === 'duplicate')    return 'Duplicate';
+  if (reason === 'cors_skip')    return 'Auth wall';
+  if (reason === 'invalid_url')  return 'Unsupported URL';
+  return 'Skipped';
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -407,9 +465,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Failed panel toggle
   $('btn-show-failed').addEventListener('click', () => {
     const panel = $('failed-panel');
-    const open  = panel.classList.toggle('hidden');
+    const isNowHidden = panel.classList.toggle('hidden');
     $('btn-show-failed').innerHTML =
-      `⚠️ <strong id="search-stat-failed">${$('search-stat-failed').textContent}</strong> failed ${open ? '▾' : '▴'}`;
+      `⚠️ <strong id="search-stat-failed">${$('search-stat-failed').textContent}</strong> failed ${isNowHidden ? '▾' : '▴'}`;
+  });
+
+  // Skipped panel toggle
+  $('btn-show-skipped').addEventListener('click', () => {
+    const panel = $('skipped-panel');
+    const isNowHidden = panel.classList.toggle('hidden');
+    $('btn-show-skipped').innerHTML =
+      `⏭️ <strong id="search-stat-skipped">${$('search-stat-skipped').textContent}</strong> skipped ${isNowHidden ? '▾' : '▴'}`;
   });
 
   // Retry failed bookmarks
@@ -417,9 +483,20 @@ document.addEventListener('DOMContentLoaded', () => {
     send({ type: 'RETRY_FAILED' });
   });
 
+  // Delete all failed bookmarks
+  $('btn-delete-all-failed').addEventListener('click', () => {
+    if (!confirm('Delete all failed bookmarks from Chrome? This cannot be undone.')) return;
+    send({ type: 'DELETE_ALL_FAILED' });
+  });
+
   // Clear failed list
   $('btn-clear-failed').addEventListener('click', () => {
     send({ type: 'CLEAR_FAILED' });
+  });
+
+  // Clear skipped list
+  $('btn-clear-skipped').addEventListener('click', () => {
+    send({ type: 'CLEAR_SKIPPED' });
   });
 
   // Search input

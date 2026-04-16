@@ -16,9 +16,9 @@ import { getUser, clearUser, PLAN, FREE_PLAN_LIMIT } from './lib/user-service.js
 const DB_NAME         = 'bookmark_ai_db';
 const DB_VERSION      = 1;
 const STORE           = 'bookmarks';
-const FETCH_TIMEOUT   = 5_000;   // ms
+const FETCH_TIMEOUT   = 2_000;   // ms
 const MAX_HTML_BYTES  = 60_000;   // bytes read per page
-const SKIP_SCHEMES    = /^(javascript:|chrome:|chrome-extension:|about:|data:|blob:)/i;
+const ALLOWED_SCHEMES = /^https?:/i;  // only http and https are fetchable
 // Hosts that reliably block cross-origin fetches from extensions (CORS / auth walls)
 const SKIP_HOSTS      = /^(chrome\.google\.com|chromewebstore\.google\.com|accounts\.google\.com|mail\.google\.com|drive\.google\.com|docs\.google\.com|login\.microsoftonline\.com|appleid\.apple\.com)$/i;
 const BOT_TITLES      = /^(just a moment|attention required|access denied|checking your browser|enable javascript|ddos protection|security check)/i;
@@ -114,9 +114,10 @@ async function existsByUrl(url) {
 
 // ── Page metadata fetching ───────────────────────────────────────────────────
 async function fetchMeta(url) {
+  let timer = null;
   try {
     const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+    timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
 
     const resp  = await fetch(url, {
       signal     : ctrl.signal,
@@ -213,7 +214,7 @@ function htmlDecode(s) {
 async function processBookmark(bm) {
   const { id, url, title, dateAdded } = bm;
 
-  if (!url || SKIP_SCHEMES.test(url) || isPrivateUrl(url)) {
+  if (!url || !ALLOWED_SCHEMES.test(url) || isPrivateUrl(url)) {
     return { ok: false, reason: 'invalid_url' };
   }
 
@@ -298,7 +299,7 @@ async function runInitialScan() {
   saveStatus({
     status: 'scanning', phase: 'loading_model',
     progress: 0, current: 0, total,
-    successful: 0, failed: [],
+    successful: 0, skipped: [], failed: [],
     semanticMode: SEMANTIC_MODE,
   });
 
@@ -314,6 +315,7 @@ async function runInitialScan() {
   const isFree    = user.subscription_plan === PLAN.FREE;
   const indexCap  = isFree ? FREE_PLAN_LIMIT : Infinity;
   let successful  = 0;
+  const skipped  = [];
   const failed    = [];
 
   for (let i = 0; i < all.length; i++) {
@@ -323,7 +325,7 @@ async function runInitialScan() {
     if (successful >= indexCap) {
       saveStatus({
         status: 'complete', progress: 100,
-        total, successful, failed,
+        total, successful, skipped, failed,
         limitReached: true, indexCap,
         semanticMode: SEMANTIC_MODE,
       });
@@ -333,8 +335,9 @@ async function runInitialScan() {
     try {
       const res = await processBookmark(bm);
       if (res.ok && !res.duplicate) successful++;
-      else if (!res.ok && res.reason !== 'invalid_url' && res.reason !== 'cors_skip')
-        failed.push({ id: bm.id, url: bm.url, title: bm.title || bm.url, reason: res.reason });
+      else if (res.ok && res.duplicate) skipped.push({ id: bm.id, url: bm.url, title: bm.title || bm.url, reason: 'duplicate' });
+      else if (res.reason === 'invalid_url' || res.reason === 'cors_skip') skipped.push({ id: bm.id, url: bm.url, title: bm.title || bm.url, reason: res.reason });
+      else failed.push({ id: bm.id, url: bm.url, title: bm.title || bm.url, reason: res.reason });
     } catch (e) {
       failed.push({ id: bm.id, url: bm.url, title: bm.title || bm.url, reason: e.message });
     }
@@ -343,7 +346,7 @@ async function runInitialScan() {
     saveStatus({
       status: 'scanning', phase: 'scanning',
       progress, current: i + 1, total,
-      successful, failed,
+      successful, skipped, failed,
       currentUrl: bm.url,
       semanticMode: SEMANTIC_MODE,
     });
@@ -354,7 +357,7 @@ async function runInitialScan() {
 
   saveStatus({
     status: 'complete', progress: 100,
-    total, successful, failed,
+    total, successful, skipped, failed,
     semanticMode: SEMANTIC_MODE,
   });
 }
@@ -530,6 +533,66 @@ chrome.runtime.onConnect.addListener((port) => {
         break;
       }
 
+      case 'RETRY_ONE_FAILED': {
+        const { id: retryId } = msg;
+        const { scanStatus } = await chrome.storage.local.get('scanStatus');
+        const failed = scanStatus?.failed || [];
+        const entry  = failed.find(f => f.id === retryId);
+        if (!entry) break;
+
+        await initEmbedder();
+
+        let bm = null;
+        try { [bm] = await chrome.bookmarks.get(entry.id); } catch { /* deleted */ }
+
+        let updatedFailed;
+        if (!bm?.url) {
+          // Bookmark no longer exists — remove from list
+          updatedFailed = failed.filter(f => f.id !== retryId);
+        } else {
+          const meta = await fetchMeta(bm.url);
+          if (meta?.fetchError) {
+            // Still failing — update reason
+            updatedFailed = failed.map(f =>
+              f.id === retryId ? { ...f, reason: String(meta.fetchError) } : f
+            );
+          } else {
+            // Success — embed and store
+            const pageTitle = meta?.title    || bm.title || '';
+            const metadata  = meta?.metadata || '';
+            const embText   = [pageTitle, metadata, bm.url].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+            let embedding = [];
+            try { embedding = await generateEmbedding(embText); } catch { /* keep empty */ }
+            await txPut({
+              id: bm.id, url: bm.url,
+              title: pageTitle || bm.title || bm.url,
+              metadata, embedding,
+              createdAt: bm.dateAdded || Date.now(),
+            });
+            updatedFailed = failed.filter(f => f.id !== retryId);
+          }
+        }
+
+        const updated = {
+          ...scanStatus,
+          successful: updatedFailed.length < failed.length
+            ? (scanStatus.successful || 0) + 1
+            : (scanStatus.successful || 0),
+          failed: updatedFailed,
+        };
+        chrome.storage.local.set({ scanStatus: updated });
+        port.postMessage({ type: 'RETRY_ONE_DONE', id: retryId, status: updated });
+        break;
+      }
+
+      case 'CLEAR_SKIPPED': {
+        const { scanStatus } = await chrome.storage.local.get('scanStatus');
+        const updated = { ...scanStatus, skipped: [] };
+        chrome.storage.local.set({ scanStatus: updated });
+        port.postMessage({ type: 'CLEAR_SKIPPED_DONE', status: updated });
+        break;
+      }
+
       case 'DELETE_BOOKMARK': {
         const { id: bmId } = msg;
         // Remove from Chrome bookmarks (triggers onRemoved which cleans up IndexedDB)
@@ -544,6 +607,19 @@ chrome.runtime.onConnect.addListener((port) => {
           chrome.storage.local.set({ scanStatus: updated });
           port.postMessage({ type: 'SCAN_PROGRESS', ...updated });
         }
+        break;
+      }
+
+      case 'DELETE_ALL_FAILED': {
+        const { scanStatus } = await chrome.storage.local.get('scanStatus');
+        const allFailed = scanStatus?.failed || [];
+        for (const f of allFailed) {
+          try { await chrome.bookmarks.remove(f.id); } catch { /* already deleted */ }
+        }
+        // onRemoved will fire for each but we also clear the list immediately
+        const updated = { ...scanStatus, failed: [] };
+        chrome.storage.local.set({ scanStatus: updated });
+        port.postMessage({ type: 'SCAN_PROGRESS', ...updated });
         break;
       }
 

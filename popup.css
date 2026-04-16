@@ -255,6 +255,17 @@ html, body {
 .stats-failed-btn strong { color: var(--warn); }
 .stats-failed-btn:hover { text-decoration: underline; }
 
+.stats-skipped-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--text3);
+  padding: 0;
+}
+.stats-skipped-btn strong { color: var(--text3); }
+.stats-skipped-btn:hover { text-decoration: underline; }
+
 /* ── Failed panel ──────────────────────────────────────────────── */
 .failed-panel {
   background: var(--bg2);
@@ -284,6 +295,18 @@ html, body {
   padding: 2px 8px;
 }
 .btn-retry-failed:disabled { opacity: .5; cursor: default; }
+.btn-delete-all-failed {
+  background: transparent;
+  color: var(--err);
+  border: 1px solid color-mix(in srgb, var(--err) 40%, transparent);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.btn-delete-all-failed:hover { background: color-mix(in srgb, var(--err) 12%, transparent); }
+.btn-delete-all-failed:disabled { opacity: .5; cursor: default; }
 .failed-panel-actions { display: flex; gap: 6px; align-items: center; }
 .btn-clear-failed {
   background: transparent;
@@ -352,6 +375,20 @@ html, body {
 }
 .btn-delete-failed:hover  { opacity: 1; }
 .btn-delete-failed:disabled { opacity: 0.2; cursor: default; }
+.btn-retry-one {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 1px 2px;
+  opacity: 0.5;
+  transition: opacity .15s;
+  color: var(--accent-lt);
+}
+.btn-retry-one:hover   { opacity: 1; }
+.btn-retry-one:disabled { opacity: 0.2; cursor: default; }
 .failed-reason {
   flex-shrink: 0;
   font-size: 10px;
@@ -359,6 +396,15 @@ html, body {
   background: color-mix(in srgb, var(--err) 15%, transparent);
   border-radius: 3px;
   padding: 1px 5px;
+}
+.skipped-reason {
+  flex-shrink: 0;
+  font-size: 10px;
+  color: var(--text3);
+  background: color-mix(in srgb, var(--text3) 12%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
 .search-row {
