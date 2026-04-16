@@ -445,13 +445,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
       case 'GET_USER': {
         const user = await getUser();
-        port.postMessage({ type: 'USER', user });
+        port.postMessage({ type: 'USER', user, freePlanLimit: FREE_PLAN_LIMIT });
         break;
       }
 
       case 'SIGN_OUT': {
         const user = await clearUser();
-        port.postMessage({ type: 'USER', user });
+        port.postMessage({ type: 'USER', user, freePlanLimit: FREE_PLAN_LIMIT });
         break;
       }
 

@@ -106,7 +106,7 @@ function handleMessage(msg) {
       if (msg.status) updateSearchStats(msg.status);
       break;
     case 'USER':
-      renderPlanBadge(msg.user);
+      renderPlanBadge(msg.user, msg.freePlanLimit);
       break;
     case 'PING':
       /* keep-alive – ignore */
@@ -416,7 +416,7 @@ function prettifyUrl(url) {
 }
 
 // ── Plan badge ───────────────────────────────────────────────────────────────
-function renderPlanBadge(user) {
+function renderPlanBadge(user, freePlanLimit) {
   const badge = $('plan-badge');
   if (!user) { badge.classList.add('hidden'); return; }
 
@@ -432,7 +432,7 @@ function renderPlanBadge(user) {
   if (expired) badge.classList.add('plan-badge--expired');
   badge.title = isPaid && user.valid_until
     ? `Valid until ${new Date(user.valid_until).toLocaleDateString()}`
-    : '';
+    : (freePlanLimit ? `Maximum ${freePlanLimit} bookmarks can be indexed` : '');
 }
 
 
