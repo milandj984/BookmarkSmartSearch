@@ -417,22 +417,22 @@ function prettifyUrl(url) {
 
 // ── Plan badge ───────────────────────────────────────────────────────────────
 function renderPlanBadge(user, freePlanLimit) {
-  const badge = $('plan-badge');
-  if (!user) { badge.classList.add('hidden'); return; }
+  // const badge = $('plan-badge');
+  // if (!user) { badge.classList.add('hidden'); return; }
 
-  const plan = user.subscription_plan || 'free';
-  const isPaid = plan !== 'free';
+  // const plan = user.subscription_plan || 'free';
+  // const isPaid = plan !== 'free';
 
-  // Check expiry for paid plans
-  const expired = isPaid && user.valid_until && new Date(user.valid_until) < new Date();
-  const label   = expired ? 'Expired' : plan.charAt(0).toUpperCase() + plan.slice(1);
+  // // Check expiry for paid plans
+  // const expired = isPaid && user.valid_until && new Date(user.valid_until) < new Date();
+  // const label   = expired ? 'Expired' : plan.charAt(0).toUpperCase() + plan.slice(1);
 
-  badge.textContent = label;
-  badge.className   = 'plan-badge' + (isPaid && !expired ? ' plan-badge--paid' : '');
-  if (expired) badge.classList.add('plan-badge--expired');
-  badge.title = isPaid && user.valid_until
-    ? `Valid until ${new Date(user.valid_until).toLocaleDateString()}`
-    : (freePlanLimit ? `Maximum ${freePlanLimit} bookmarks can be indexed` : '');
+  // badge.textContent = label;
+  // badge.className   = 'plan-badge' + (isPaid && !expired ? ' plan-badge--paid' : '');
+  // if (expired) badge.classList.add('plan-badge--expired');
+  // badge.title = isPaid && user.valid_until
+  //   ? `Valid until ${new Date(user.valid_until).toLocaleDateString()}`
+  //   : (freePlanLimit ? `Maximum ${freePlanLimit} bookmarks can be indexed` : '');
 }
 
 
